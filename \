@@ -1,0 +1,97 @@
+use std::time::{Duration, Instant};
+use super::timer::*;
+
+pub enum RouteId {
+    Tools,
+    Help,
+    Time,
+    Times,
+    Scramble,
+    Main,
+    Home,
+}
+
+pub enum ActiveBlock {
+    Tools,
+    Help,
+    Time,
+    Times,
+    Scramble,
+    LineGraph,
+    BarGraph,
+    Stats,
+    Home,
+    Main,
+}
+
+pub struct Route {
+    pub id: RouteId,
+    pub selected_block: ActiveBlock,
+    pub active_block: ActiveBlock,
+}
+
+impl Route {
+    fn default() -> Self {
+        Self {
+            id: RouteId::Home,
+            selected_block: ActiveBlock::Times,
+            active_block: ActiveBlock::Home,
+        }
+    }
+}
+
+pub struct App {
+    pub tick_rate: Duration,
+    pub timer: CubeTimer,
+    pub route: Route,
+    pub space_down: bool,
+}
+
+impl App {
+    pub fn new(tick_rate: Duration) -> Self {
+        App {
+            tick_rate,
+            timer: CubeTimer::default(),
+            route: Route::default(),
+            space_down: false,
+        }
+    }
+
+    pub fn on_tick(&self) {
+        ()
+    }
+
+    pub fn space_down(&mut self) {
+        if !self.space_down {
+            match &self.timer.state {
+                // space was pressed
+                Off => {
+                    self.space_down = true;
+                    self.timer.state = TimerState::Primed;
+                    self.primetime = Instant::now();
+                },
+                Primed => (),
+                Running => {
+                    self.elapsed = self.starttime.unwrap().elapsed();
+                    self.state = TimerState::Off;
+                },
+            }
+        }
+    }
+
+    pub fn space_not_down(&mut self) {
+        if app.space_down {
+            match &self.state {
+                Primed => self.state = TimerState::Off,
+                _ => (),
+            }
+        } else {
+            match &self.state {
+                Primed => {
+                    self.starttime = Some(Instant::now());
+                    self.state = TimerState::Running;
+                }
+            }
+        }
+    }
+}
