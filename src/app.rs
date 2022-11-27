@@ -18,17 +18,9 @@ pub enum ActiveBlock {
     Timer,
     Times,
     Scramble,
-    LineGraph,
-    BarGraph,
-    Stats,
     Home,
     Main,
 }
-
-const SELECTABLE: [[ActiveBlock; 2]; 2] = [
-    [ActiveBlock::Timer, ActiveBlock::Times],
-    [ActiveBlock::Scramble, ActiveBlock::Main],
-];
 
 pub struct Route {
     pub id: RouteId,
@@ -49,10 +41,6 @@ impl Route {
         if self.active_block != ActiveBlock::Home {
             self.active_block = ActiveBlock::Home;
         }
-    }
-
-    pub fn set_pos(&mut self, (x, y): (usize, usize)) {
-        self.selected_block = SELECTABLE[x][y];
     }
 }
 
@@ -97,6 +85,7 @@ pub struct App {
     pub pos: (usize, usize),
     pub times: Vec<Time>,
     pub times_state: TableState,
+    layout: Vec<Vec<ActiveBlock>>,
 }
 
 impl App {
@@ -107,7 +96,11 @@ impl App {
             route: Route::default(),
             times: vec![],
             times_state: TableState::default(),
-            pos: (0, 1),
+            pos: (0, 2),
+            layout: vec![
+                vec![ActiveBlock::Tools, ActiveBlock::Timer, ActiveBlock::Times],
+                vec![ActiveBlock::Scramble, ActiveBlock::Main],
+            ],
         }
     }
 
@@ -118,28 +111,44 @@ impl App {
         }
         if id == self.route.active_block {
             color = Color::LightGreen;
-        } 
+        }
         color
     }
 
-    pub fn mv_horiz(&mut self, right: bool) {
-        if right && (self.pos.0 + 1 < SELECTABLE[self.pos.1].len()) {
-            self.pos.0 += 1;
-        } else if !right && ((self.pos.0) as i32 - 1 >= 0) {
-            self.pos.0 -= 1;
+    pub fn mv(&mut self, horiz: bool, inv: bool) {
+        if self.route.active_block != ActiveBlock::Home {
+            return;
         }
 
-        self.route.set_pos(self.pos);
+        if horiz {
+            self.mv_horiz(inv);
+        } else {
+            self.mv_vert(inv);
+        }
+
+        self.route.selected_block = self.layout[self.pos.0][self.pos.1];
     }
 
-    pub fn mv_vert(&mut self, up: bool) {
-        if up && ((self.pos.1) as i32 - 1 >= 0) {
+    fn mv_horiz(&mut self, inv: bool) {
+        if !inv && self.layout.len() > self.pos.0 + 1 {
+            let max = self.layout[self.pos.0 + 1].len() - 1;
+            if self.pos.1 + 1 > max {
+                self.pos.1 = max;
+            }
+            self.pos.0 += 1;
+        } else if inv && ((self.pos.0) as i32 - 1 >= 0) {
+            self.pos.0 -= 1;
+        }
+    }
+
+    fn mv_vert(&mut self, inv: bool) {
+        if !inv && ((self.pos.1) as i32 - 1 >= 0) {
             self.pos.1 -= 1;
-        } else if !up && (self.pos.1 + 1 < SELECTABLE[self.pos.0].len()) {
+        } else if inv && (self.pos.1 + 1 < self.layout[self.pos.0].len()) {
             self.pos.1 += 1;
         }
 
-        self.route.set_pos(self.pos);
+        self.route.selected_block = self.layout[self.pos.0][self.pos.1];
     }
 
     pub fn on_tick(&self) {

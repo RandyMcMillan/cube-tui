@@ -13,7 +13,7 @@ use tui::{
 };
 
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
-    let mut app = App::new(Duration::from_millis(100));
+    let mut app = App::new(Duration::from_millis(1000));
     let mut last_tick = Instant::now();
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
@@ -30,14 +30,15 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
                         Some(mut t) => {
                             t.gen_stats(&app.times);
                             app.times.push(t);
+                            app.tick_rate = Duration::from_millis(1000);
                         }
-                        None => (),
+                        None => app.tick_rate = Duration::from_millis(100),
                     },
                     KeyCode::Esc => app.route.esc(),
-                    KeyCode::Char('k') => app.mv_vert(true),
-                    KeyCode::Char('j') => app.mv_vert(false),
-                    KeyCode::Char('l') => app.mv_horiz(true),
-                    KeyCode::Char('h') => app.mv_horiz(false),
+                    KeyCode::Char('h') => app.mv(true, true),
+                    KeyCode::Char('j') => app.mv(false, true),
+                    KeyCode::Char('k') => app.mv(false, false),
+                    KeyCode::Char('l') => app.mv(true, false),
                     _ => (),
                 }
             }
@@ -89,18 +90,24 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(layout_chunk);
 
-    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Tools));
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Help));
+    let paragraph = Paragraph::new("Press ? for help".to_string())
+        .block(
+            Block::default()
+                .title("Help")
+                .borders(Borders::ALL)
+                .border_style(border_style)
+        )
+        .style(Style::default().fg(Color::White))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, chunks[0]);
+
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Tools));
     let block = Block::default()
         .title("Tools")
         .borders(Borders::ALL)
-        .style(style);
-    f.render_widget(block, chunks[0]);
-
-    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Help));
-    let block = Block::default()
-        .title("Help")
-        .borders(Borders::ALL)
-        .style(style);
+        .style(border_style);
     f.render_widget(block, chunks[1]);
 }
 
