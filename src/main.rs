@@ -1,6 +1,5 @@
 mod ui;
 mod app;
-mod timer;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,

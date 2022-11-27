@@ -35,10 +35,11 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
                         None => app.tick_rate = Duration::from_millis(100),
                     },
                     KeyCode::Esc => app.route.esc(),
-                    KeyCode::Char('h') => app.mv(true, true),
-                    KeyCode::Char('j') => app.mv(false, true),
-                    KeyCode::Char('k') => app.mv(false, false),
-                    KeyCode::Char('l') => app.mv(true, false),
+                    KeyCode::Enter => app.route.enter(),
+                    KeyCode::Char('h') => app.mv(Dir::Left),
+                    KeyCode::Char('j') => app.mv(Dir::Down),
+                    KeyCode::Char('k') => app.mv(Dir::Up),
+                    KeyCode::Char('l') => app.mv(Dir::Right),
                     _ => (),
                 }
             }
@@ -71,7 +72,14 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let right_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(5), Constraint::Percentage(100)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(5),
+                Constraint::Length(3),
+                Constraint::Percentage(100),
+            ]
+            .as_ref(),
+        )
         .split(chunks[1]);
 
     // render left side
@@ -81,7 +89,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     // render right side
     render_scramble(f, app, right_chunks[0]);
-    render_main(f, app, right_chunks[1]);
+    render_bests(f, app, right_chunks[1]);
+    render_main(f, app, right_chunks[2]);
 }
 
 fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
@@ -96,7 +105,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
             Block::default()
                 .title("Help")
                 .borders(Borders::ALL)
-                .border_style(border_style)
+                .border_style(border_style),
         )
         .style(Style::default().fg(Color::White))
         .alignment(Alignment::Center)
@@ -128,7 +137,9 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
 }
 
 pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let selected_style = Style::default().add_modifier(Modifier::BOLD);
+    let selected_style = Style::default()
+        .add_modifier(Modifier::BOLD)
+        .fg(Color::LightGreen);
     let normal_style = Style::default().fg(Color::White);
     let header_cells = ["i", "time", "ao5", "ao12"].iter().map(|h| Cell::from(*h));
     let header = Row::new(header_cells)
@@ -178,6 +189,75 @@ pub fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk
         .borders(Borders::ALL)
         .border_style(border_style);
     f.render_widget(block, layout_chunk);
+}
+
+pub fn render_bests<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 6),
+            ]
+            .as_ref(),
+        )
+        .split(layout_chunk);
+
+    render_stat(
+        f,
+        app,
+        "PB Single".to_string(),
+        "pb single".to_string(),
+        chunks[0],
+    );
+    render_stat(
+        f,
+        app,
+        "PB ao5".to_string(),
+        "pb ao5".to_string(),
+        chunks[5],
+    );
+    render_stat(
+        f,
+        app,
+        "PB ao12".to_string(),
+        "pb ao12".to_string(),
+        chunks[1],
+    );
+    render_stat(f, app, "ao100".to_string(), "ao100".to_string(), chunks[2]);
+    render_stat(f, app, "ao1k".to_string(), "ao1k".to_string(), chunks[3]);
+    render_stat(
+        f,
+        app,
+        "rolling avg".to_string(),
+        "rolling avg".to_string(),
+        chunks[4],
+    );
+}
+
+fn render_stat<B: Backend>(
+    f: &mut Frame<B>,
+    app: &mut App,
+    title: String,
+    text: String,
+    layout_chunk: Rect,
+) {
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Stats));
+    let paragraph = Paragraph::new(text)
+        .block(
+            Block::default()
+                .title(title)
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        )
+        .style(Style::default().fg(Color::White))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, layout_chunk);
 }
 
 pub fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
