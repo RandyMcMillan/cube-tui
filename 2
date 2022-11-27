@@ -26,13 +26,15 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
             if let Event::Key(key) = event::read()? {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Char(' ') => match app.timer.space_press() {
-                        Some(mut t) => {
-                            t.gen_stats(&app.times);
-                            app.times.push(t);
+                    KeyCode::Char(' ') => {
+                        match app.timer.space_press() {
+                            Some(mut t) => {
+                                t.gen_stats(&app.times);
+                                app.times.push(t);
+                            },
+                            None => ()
                         }
-                        None => (),
-                    },
+                    }
                     _ => (),
                 }
             }
@@ -119,26 +121,25 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
 
 pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let selected_style = Style::default().add_modifier(Modifier::BOLD);
-    let normal_style = Style::default().fg(Color::White);
-    let header_cells = ["i", "time", "ao5", "ao12"].iter().map(|h| Cell::from(*h));
-    let header = Row::new(header_cells)
-        .style(normal_style)
-        .height(1)
-        .bottom_margin(1);
+    let selected_style = Style::default().fg(Color::White);
+    let header_cells = ["i", "time", "ao5", "ao12"]
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
+    let header = Row::new(header_cells).height(1).bottom_margin(1);
     let rows = app.times.iter().enumerate().map(|(i, t)| {
         let ao5 = match t.ao5 {
-            Some(v) => format!("{:.2}", v),
+            Some(v) => v.to_string(),
             None => "-".to_string(),
         };
-        let ao12 = match t.ao12 {
-            Some(v) => format!("{:.2}", v),
+        let ao12 = match t.ao5 {
+            Some(v) => v.to_string(),
             None => "-".to_string(),
         };
         let cells = vec![
             i.to_string(),
             format!("{:.2}", t.time),
-            format!("{}", ao5),
-            format!("{}", ao12),
+            format!("{:.2}", t.ao5),
+            format!("{:.2}", t.ao12),
         ];
         Row::new(cells)
     });
@@ -147,10 +148,10 @@ pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: R
         .block(Block::default().borders(Borders::ALL).title("Table"))
         .highlight_style(selected_style)
         .widths(&[
-            Constraint::Ratio(1, 10),
-            Constraint::Ratio(3, 10),
-            Constraint::Ratio(3, 10),
-            Constraint::Ratio(3, 10),
+                Constraint::Ratio(1, 10),
+                Constraint::Ratio(3, 10),
+                Constraint::Ratio(3, 10),
+                Constraint::Ratio(3, 10),
         ]);
     f.render_stateful_widget(table, layout_chunk, &mut app.times_state);
 }

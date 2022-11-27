@@ -1,4 +1,5 @@
 use std::time::{Duration, Instant};
+use super::app::Time;
 
 #[derive(Debug)]
 pub struct CubeTimer {
@@ -16,10 +17,13 @@ impl CubeTimer {
         }
     }
 
-    pub fn space_press(&mut self) {
+    pub fn space_press(&mut self) -> Option<Time> {
         match self.on {
-            false => self.timer_on(),
-            true => self.timer_off(),
+            false => {
+                self.timer_on();
+                None
+            },
+            true => Some(self.timer_off()),
         }
     }
 
@@ -28,10 +32,11 @@ impl CubeTimer {
         self.starttime = Some(Instant::now());
     }
 
-    fn timer_off(&mut self) {
+    fn timer_off(&mut self) -> Time {
         self.on = false;
         self.lasttime = self.elapsed();
         self.starttime = None;
+        Time::from(self.lasttime.as_secs_f32())
     }
 
     fn elapsed(&self) -> Duration {
