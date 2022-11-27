@@ -33,6 +33,11 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
                         }
                         None => (),
                     },
+                    KeyCode::Esc => app.route.esc(),
+                    KeyCode::Char('k') => app.mv_vert(true),
+                    KeyCode::Char('j') => app.mv_vert(false),
+                    KeyCode::Char('l') => app.mv_horiz(true),
+                    KeyCode::Char('h') => app.mv_horiz(false),
                     _ => (),
                 }
             }
@@ -74,10 +79,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     render_times(f, app, left_chunks[2]);
 
     // render right side
-    let block = Block::default().title("Scramble").borders(Borders::ALL);
-    f.render_widget(block, right_chunks[0]);
-    let block = Block::default().title("Main").borders(Borders::ALL);
-    f.render_widget(block, right_chunks[1]);
+    render_scramble(f, app, right_chunks[0]);
+    render_main(f, app, right_chunks[1]);
 }
 
 fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
@@ -86,14 +89,14 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(layout_chunk);
 
-    let style = Style::default().fg(get_color_from_id(&app, ActiveBlock::Tools));
+    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Tools));
     let block = Block::default()
         .title("Tools")
         .borders(Borders::ALL)
         .style(style);
     f.render_widget(block, chunks[0]);
 
-    let style = Style::default().fg(get_color_from_id(&app, ActiveBlock::Help));
+    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Help));
     let block = Block::default()
         .title("Help")
         .borders(Borders::ALL)
@@ -103,7 +106,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
 
 fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let text = format!("\n\n{}", app.timer.text());
-    let style = Style::default().fg(get_color_from_id(&app, ActiveBlock::Timer));
+    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Timer));
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()
@@ -142,9 +145,15 @@ pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: R
         ];
         Row::new(cells)
     });
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Times));
     let table = Table::new(rows)
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Table"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Table")
+                .border_style(border_style),
+        )
         .highlight_style(selected_style)
         .widths(&[
             Constraint::Ratio(1, 10),
@@ -155,15 +164,27 @@ pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: R
     f.render_stateful_widget(table, layout_chunk, &mut app.times_state);
 }
 
-pub fn get_color_from_id(app: &App, id: ActiveBlock) -> Color {
-    let color;
-    if let ActiveBlock::Timer = app.route.active_block {
-        color = Color::LightGreen;
-    } else if let ActiveBlock::Timer = app.route.selected_block {
-        color = Color::Magenta;
-    } else {
-        color = Color::LightBlue;
-    }
+pub fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Scramble));
+    let block = Block::default()
+        .title("Scramble")
+        .borders(Borders::ALL)
+        .border_style(border_style);
+    f.render_widget(block, layout_chunk);
+}
 
-    color
+pub fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let text = format!("\n\n{:?}\n{:?}", app.route.selected_block, app.pos);
+    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Main));
+    let paragraph = Paragraph::new(text)
+        .block(
+            Block::default()
+                .title("Main")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        )
+        .style(Style::default().fg(Color::White))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, layout_chunk);
 }
