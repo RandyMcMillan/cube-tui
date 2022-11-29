@@ -1,19 +1,25 @@
 use super::app::*;
 use crossterm::event::{self, Event, KeyCode};
 use std::{
+    env,
     error::Error,
+    path::Path,
     time::{Duration, Instant},
 };
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
     Frame, Terminal,
 };
 
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
-    let mut app = App::new(Duration::from_millis(1000));
+    //let pathstr = format!("/home/{}/.local/share/cube-tui/times", env::var("HOME")?);
+    //let path = Path::new(&pathstr);
+    let path = Path::new(&"/home/henry/.local/share/cube-tui/times");
+    let mut app = App::new(Duration::from_millis(1000), path)?;
+    app.load_times()?;
     let mut last_tick = Instant::now();
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
@@ -25,7 +31,10 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
         if event::poll(timeout)? {
             if let Event::Key(key) = event::read()? {
                 match key.code {
-                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('q') => {
+                        app.write_times()?;
+                        return Ok(());
+                    }
                     KeyCode::Char(' ') => match app.timer.space_press() {
                         Some(mut t) => {
                             t.gen_stats(&app.times);
@@ -99,7 +108,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(layout_chunk);
 
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Help));
+    let border_style = app.get_border_style_from_id(ActiveBlock::Help);
     let paragraph = Paragraph::new("Press ? for help".to_string())
         .block(
             Block::default()
@@ -112,7 +121,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
         .wrap(Wrap { trim: true });
     f.render_widget(paragraph, chunks[0]);
 
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Tools));
+    let border_style = app.get_border_style_from_id(ActiveBlock::Tools);
     let block = Block::default()
         .title("Tools")
         .borders(Borders::ALL)
@@ -122,13 +131,13 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
 
 fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let text = format!("\n\n{}", app.timer.text());
-    let style = Style::default().fg(app.get_color_from_id(ActiveBlock::Timer));
+    let borderstyle = app.get_border_style_from_id(ActiveBlock::Timer);
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()
                 .title("Timer")
                 .borders(Borders::ALL)
-                .border_style(style),
+                .border_style(borderstyle),
         )
         .style(Style::default().fg(Color::White))
         .alignment(Alignment::Center)
@@ -136,10 +145,8 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     f.render_widget(paragraph, layout_chunk);
 }
 
-pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let selected_style = Style::default()
-        .add_modifier(Modifier::BOLD)
-        .fg(Color::LightGreen);
+fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let selected_style = app.get_highlight_style_from_id(ActiveBlock::Times);
     let normal_style = Style::default().fg(Color::White);
     let header_cells = ["i", "time", "ao5", "ao12"].iter().map(|h| Cell::from(*h));
     let header = Row::new(header_cells)
@@ -163,7 +170,7 @@ pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: R
         ];
         Row::new(cells)
     });
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Times));
+    let border_style = app.get_border_style_from_id(ActiveBlock::Times);
     let table = Table::new(rows)
         .header(header)
         .block(
@@ -182,8 +189,8 @@ pub fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: R
     f.render_stateful_widget(table, layout_chunk, &mut app.times_state);
 }
 
-pub fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Scramble));
+fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let border_style = app.get_border_style_from_id(ActiveBlock::Scramble);
     let block = Block::default()
         .title("Scramble")
         .borders(Borders::ALL)
@@ -191,7 +198,7 @@ pub fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk
     f.render_widget(block, layout_chunk);
 }
 
-pub fn render_bests<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+fn render_bests<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints(
@@ -246,7 +253,7 @@ fn render_stat<B: Backend>(
     text: String,
     layout_chunk: Rect,
 ) {
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Stats));
+    let border_style = app.get_border_style_from_id(ActiveBlock::Stats);
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()
@@ -260,9 +267,9 @@ fn render_stat<B: Backend>(
     f.render_widget(paragraph, layout_chunk);
 }
 
-pub fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let text = format!("\n\n{:?}\n{:?}", app.route.selected_block, app.pos);
-    let border_style = Style::default().fg(app.get_color_from_id(ActiveBlock::Main));
+fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let text = format!("\n\n{:?}\n{:?}", app.route.active_block, app.pos);
+    let border_style = app.get_border_style_from_id(ActiveBlock::Main);
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()

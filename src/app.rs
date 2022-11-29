@@ -1,14 +1,15 @@
-use std::time::{Duration, Instant};
-use tui::{style::Color, widgets::TableState};
-
-#[derive(PartialEq, Eq)]
-pub enum RouteId {
-    Timer,
-    Times,
-    Scramble,
-    Main,
-    Home,
-}
+use ordered_float::*;
+use std::{
+    env,
+    error::Error,
+    time::{Duration, Instant},
+    fs,
+    path::Path,
+};
+use tui::{
+    style::{Color, Modifier, Style},
+    widgets::TableState,
+};
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ActiveBlock {
@@ -23,7 +24,6 @@ pub enum ActiveBlock {
 }
 
 pub struct Route {
-    pub id: RouteId,
     pub selected_block: ActiveBlock,
     pub active_block: ActiveBlock,
 }
@@ -31,7 +31,6 @@ pub struct Route {
 impl Route {
     fn default() -> Self {
         Self {
-            id: RouteId::Home,
             selected_block: ActiveBlock::Times,
             active_block: ActiveBlock::Home,
         }
@@ -51,8 +50,8 @@ impl Route {
 #[derive(Clone, Copy)]
 pub struct Time {
     pub time: f32,
-    pub ao5: Option<f32>,
-    pub ao12: Option<f32>,
+    pub ao5: Option<OrderedFloat<f32>>,
+    pub ao12: Option<OrderedFloat<f32>>,
 }
 
 impl Time {
@@ -70,15 +69,42 @@ impl Time {
         tr.reverse();
 
         self.ao12 = if tr.len() >= 12 {
-            Some(tr.iter().take(12).map(|v| v.time).sum::<f32>() / 12.0)
+            let mut tmp = tr
+                .iter()
+                .take(12)
+                .map(|v| OrderedFloat(v.time))
+                .collect::<Vec<OrderedFloat<f32>>>();
+            tmp.sort();
+            tmp.pop();
+            tmp.remove(0);
+            let mut sum = OrderedFloat(0.0);
+            let _ = tmp.iter().map(|v| sum += v).collect::<Vec<()>>();
+            Some(sum / OrderedFloat(10.0))
         } else {
             None
         };
         self.ao5 = if tr.len() >= 5 {
-            Some(tr.iter().take(5).map(|v| v.time).sum::<f32>() / 5.0)
+            let mut tmp = tr
+                .iter()
+                .take(5)
+                .map(|v| OrderedFloat(v.time))
+                .collect::<Vec<OrderedFloat<f32>>>();
+            tmp.sort();
+            tmp.pop();
+            tmp.remove(0);
+            let mut sum = OrderedFloat(0.0);
+            let _ = tmp.iter().map(|v| sum += v).collect::<Vec<()>>();
+            Some(sum / OrderedFloat(3.0))
         } else {
             None
         };
+    }
+}
+
+impl std::fmt::Display for Time {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        f.write_str(&self.time.to_string())?;
+        Ok(())
     }
 }
 
@@ -142,22 +168,25 @@ pub enum Dir {
     Right,
 }
 
-pub struct App {
+pub struct App<'a> {
     pub tick_rate: Duration,
     pub timer: CubeTimer,
     pub route: Route,
+    pub path: &'a Path,
     pub pos: (usize, usize),
     pub times: Vec<Time>,
     pub times_state: TableState,
     layout: Vec<Vec<ActiveBlock>>,
 }
 
-impl App {
-    pub fn new(tick_rate: Duration) -> Self {
-        App {
+impl<'a> App<'a> {
+    pub fn new(tick_rate: Duration, path: &'a Path) -> Result<Self, Box<dyn Error>> {
+        // Construct app
+        Ok(App {
             tick_rate,
             timer: CubeTimer::default(),
             route: Route::default(),
+            path,
             times: vec![],
             times_state: TableState::default(),
             pos: (0, 2),
@@ -165,18 +194,68 @@ impl App {
                 vec![ActiveBlock::Tools, ActiveBlock::Timer, ActiveBlock::Times],
                 vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
             ],
+        })
+    }
+
+    pub fn load_times(&mut self) -> Result<(), Box<dyn Error>> {
+        // Do file stuff
+        // fs::create_dir_all(self.path)?;
+
+        // Create file if it doesn't exist
+        match fs::File::open(&self.path) {
+            Err(_) => _ = fs::File::create(&self.path)?,
+            Ok(_) => (),
+        };
+
+        let mut times: Vec<Time> = fs::read_to_string(&self.path)?
+            .lines()
+            .filter_map(|v| v.parse::<f32>().ok())
+            .map(|v| Time::from(v))
+            .collect();
+        
+        for time in &mut times {
+            time.gen_stats(&self.times);
+            self.times.push(*time);
+        }
+        Ok(())
+    }
+
+    pub fn write_times(&self) -> Result<(), Box<dyn Error>> {
+        let write_data: Vec<u8> = self
+            .times
+            .iter()
+            .flat_map(|v| {
+                format!("{}\n", v.to_string())
+                    .bytes()
+                    .collect::<Vec<u8>>()
+            })
+            .collect();
+        fs::write(&self.path, write_data)?;
+        Ok(())
+    }
+
+    pub fn get_border_style_from_id(&self, id: ActiveBlock) -> Style {
+        let style = Style::default();
+
+        if id == self.route.active_block {
+            return style.fg(Color::LightGreen).add_modifier(Modifier::BOLD);
+        } else if id == self.route.selected_block {
+            return style.fg(Color::LightBlue).add_modifier(Modifier::BOLD);
+        } else {
+            return style.fg(Color::Gray);
         }
     }
 
-    pub fn get_color_from_id(&self, id: ActiveBlock) -> Color {
-        let mut color = Color::Gray;
-        if id == self.route.selected_block {
-            color = Color::LightBlue;
-        }
+    pub fn get_highlight_style_from_id(&self, id: ActiveBlock) -> Style {
+        let style = Style::default().add_modifier(Modifier::BOLD);
+
         if id == self.route.active_block {
-            color = Color::LightGreen;
+            return style.fg(Color::LightGreen);
+        } else if id == self.route.selected_block {
+            return style.fg(Color::LightBlue);
+        } else {
+            return style.fg(Color::White);
         }
-        color
     }
 
     pub fn mv(&mut self, dir: Dir) {
@@ -190,30 +269,28 @@ impl App {
                 }
                 self.route.selected_block = self.layout[self.pos.0][self.pos.1];
             }
-            ActiveBlock::Times => {
-                match dir {
-                    Dir::Up => self.previous_time(),
-                    Dir::Down => self.next_time(),
-                    _ => (),
-                }
-            }
+            ActiveBlock::Times => match dir {
+                Dir::Up => self.previous_time(),
+                Dir::Down => self.next_time(),
+                _ => (),
+            },
             _ => (),
         }
     }
 
-    pub fn mv_up(&mut self) {
+    fn mv_up(&mut self) {
         if (self.pos.1) as i32 - 1 >= 0 {
             self.pos.1 -= 1;
         }
     }
 
-    pub fn mv_down(&mut self) {
+    fn mv_down(&mut self) {
         if self.pos.1 + 1 < self.layout[self.pos.0].len() {
             self.pos.1 += 1;
         }
     }
 
-    pub fn mv_right(&mut self) {
+    fn mv_right(&mut self) {
         if self.layout.len() > self.pos.0 + 1 {
             let max = self.layout[self.pos.0 + 1].len() - 1;
             if self.pos.1 + 1 > max {
@@ -243,7 +320,7 @@ impl App {
         self.times_state.select(Some(i));
     }
 
-    pub fn previous_time(&mut self) {
+    fn previous_time(&mut self) {
         let i = match self.times_state.selected() {
             Some(i) => {
                 if i == 0 {
