@@ -1,15 +1,20 @@
 use ordered_float::*;
 use std::{
-    env,
     error::Error,
-    time::{Duration, Instant},
     fs,
     path::Path,
+    time::{Duration, Instant},
 };
 use tui::{
     style::{Color, Modifier, Style},
     widgets::TableState,
 };
+use super::cube::gen_scramble;
+
+pub enum Screen {
+    Default,
+    Help,
+}
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 pub enum ActiveBlock {
@@ -68,33 +73,15 @@ impl Time {
         tr.push(*self);
         tr.reverse();
 
-        self.ao12 = if tr.len() >= 12 {
-            let mut tmp = tr
-                .iter()
-                .take(12)
-                .map(|v| OrderedFloat(v.time))
-                .collect::<Vec<OrderedFloat<f32>>>();
-            tmp.sort();
-            tmp.pop();
-            tmp.remove(0);
-            let mut sum = OrderedFloat(0.0);
-            let _ = tmp.iter().map(|v| sum += v).collect::<Vec<()>>();
-            Some(sum / OrderedFloat(10.0))
+        self.ao5 = if tr.len() >= 5 {
+            let set = &tr[0..5];
+            Some(Times::calc_aon(set))
         } else {
             None
         };
-        self.ao5 = if tr.len() >= 5 {
-            let mut tmp = tr
-                .iter()
-                .take(5)
-                .map(|v| OrderedFloat(v.time))
-                .collect::<Vec<OrderedFloat<f32>>>();
-            tmp.sort();
-            tmp.pop();
-            tmp.remove(0);
-            let mut sum = OrderedFloat(0.0);
-            let _ = tmp.iter().map(|v| sum += v).collect::<Vec<()>>();
-            Some(sum / OrderedFloat(3.0))
+        self.ao12 = if tr.len() >= 12 {
+            let set = &tr[0..12];
+            Some(Times::calc_aon(set))
         } else {
             None
         };
@@ -108,11 +95,92 @@ impl std::fmt::Display for Time {
     }
 }
 
+pub struct Times {
+    pub times: Vec<Time>,
+    pub pbsingle: Option<OrderedFloat<f32>>,
+    pub pbao5: Option<OrderedFloat<f32>>,
+    pub pbao12: Option<OrderedFloat<f32>>,
+    pub ao100: Option<OrderedFloat<f32>>,
+    pub ao1k: Option<OrderedFloat<f32>>,
+    pub rollingavg: Option<OrderedFloat<f32>>,
+    pub sum: OrderedFloat<f32>,
+}
+
+impl Times {
+    pub fn new() -> Self {
+        Self {
+            times: vec![],
+            pbsingle: None,
+            pbao5: None,
+            pbao12: None,
+            ao100: None,
+            ao1k: None,
+            rollingavg: None,
+            sum: OrderedFloat(0.0),
+        }
+    }
+
+    pub fn insert(&mut self, time: Time) {
+        self.times.push(time);
+        Times::update_best(&mut self.pbsingle, Some(OrderedFloat(time.time)));
+        Times::update_best(&mut self.pbao5, time.ao5);
+        Times::update_best(&mut self.pbao12, time.ao12);
+
+        if self.times.len() >= 100 {
+            let mut tr = self.times.clone();
+            tr.reverse();
+            self.ao100 = Some(Times::calc_aon(&tr[0..100]));
+            if self.times.len() >= 1000 {
+                self.ao1k = Some(Times::calc_aon(&tr[0..1000]));
+            }
+        }
+
+        self.sum += OrderedFloat(time.time);
+
+        self.rollingavg = match self.rollingavg {
+            Some(_) => Some(self.sum / self.times.len() as f32),
+            None => Some(OrderedFloat(time.time)),
+        }
+    }
+
+    fn update_best(curr: &mut Option<OrderedFloat<f32>>, t: Option<OrderedFloat<f32>>) {
+        let new = match t {
+            Some(x) => x,
+            None => return,
+        };
+
+        match curr {
+            Some(v) => {
+                if new < *v {
+                    *curr = Some(OrderedFloat(*new));
+                }
+            }
+            None => *curr = Some(OrderedFloat(*new)),
+        }
+    }
+
+    fn calc_aon(set: &[Time]) -> OrderedFloat<f32> {
+        let mut t = set
+            .iter()
+            .take(set.len())
+            .map(|v| OrderedFloat(v.time))
+            .collect::<Vec<OrderedFloat<f32>>>();
+        // Remove best and worst time
+        t.sort();
+        t.pop();
+        t.remove(0);
+
+        let mut sum = OrderedFloat(0.0);
+        let _ = t.iter().map(|v| sum += v).collect::<Vec<()>>();
+        sum / OrderedFloat(t.len() as f32)
+    }
+}
+
 #[derive(Debug)]
 pub struct CubeTimer {
-    starttime: Option<Instant>,
-    on: bool,
-    lasttime: Duration,
+    pub starttime: Option<Instant>,
+    pub on: bool,
+    pub lasttime: Option<Duration>,
 }
 
 impl CubeTimer {
@@ -120,7 +188,7 @@ impl CubeTimer {
         Self {
             starttime: None,
             on: false,
-            lasttime: Duration::new(0, 0),
+            lasttime: None,
         }
     }
 
@@ -141,9 +209,13 @@ impl CubeTimer {
 
     fn timer_off(&mut self) -> Time {
         self.on = false;
-        self.lasttime = self.elapsed();
+        self.lasttime = Some(self.elapsed());
         self.starttime = None;
-        Time::from(self.lasttime.as_secs_f32())
+        Time::from(
+            self.lasttime
+                .unwrap_or(Duration::from_secs(0))
+                .as_secs_f32(),
+        )
     }
 
     fn elapsed(&self) -> Duration {
@@ -156,7 +228,12 @@ impl CubeTimer {
     pub fn text(&self) -> String {
         match self.starttime {
             Some(v) => format!("{:.1}", v.elapsed().as_secs_f32()),
-            None => format!("{:.3}", self.lasttime.as_secs_f32()),
+            None => format!(
+                "{:.3}",
+                self.lasttime
+                    .unwrap_or(Duration::from_secs(0))
+                    .as_secs_f32()
+            ),
         }
     }
 }
@@ -174,9 +251,11 @@ pub struct App<'a> {
     pub route: Route,
     pub path: &'a Path,
     pub pos: (usize, usize),
-    pub times: Vec<Time>,
+    pub times: Times,
     pub times_state: TableState,
     layout: Vec<Vec<ActiveBlock>>,
+    pub scramble: String,
+    pub active_screen: Screen,
 }
 
 impl<'a> App<'a> {
@@ -187,13 +266,15 @@ impl<'a> App<'a> {
             timer: CubeTimer::default(),
             route: Route::default(),
             path,
-            times: vec![],
+            times: Times::new(),
             times_state: TableState::default(),
             pos: (0, 2),
             layout: vec![
                 vec![ActiveBlock::Tools, ActiveBlock::Timer, ActiveBlock::Times],
                 vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
             ],
+            scramble: gen_scramble(),
+            active_screen: Screen::Default,
         })
     }
 
@@ -212,10 +293,10 @@ impl<'a> App<'a> {
             .filter_map(|v| v.parse::<f32>().ok())
             .map(|v| Time::from(v))
             .collect();
-        
+
         for time in &mut times {
-            time.gen_stats(&self.times);
-            self.times.push(*time);
+            time.gen_stats(&self.times.times);
+            self.times.insert(*time);
         }
         Ok(())
     }
@@ -223,15 +304,23 @@ impl<'a> App<'a> {
     pub fn write_times(&self) -> Result<(), Box<dyn Error>> {
         let write_data: Vec<u8> = self
             .times
+            .times
             .iter()
-            .flat_map(|v| {
-                format!("{}\n", v.to_string())
-                    .bytes()
-                    .collect::<Vec<u8>>()
-            })
+            .flat_map(|v| format!("{}\n", v.to_string()).bytes().collect::<Vec<u8>>())
             .collect();
         fs::write(&self.path, write_data)?;
         Ok(())
+    }
+
+    pub fn esc(&mut self) {
+        match self.active_screen {
+            Screen::Default => self.route.esc(),
+            Screen::Help => self.active_screen = Screen::Default,
+        }
+    }
+
+    pub fn help(&mut self) {
+        self.active_screen = Screen::Help;
     }
 
     pub fn get_border_style_from_id(&self, id: ActiveBlock) -> Style {
@@ -255,6 +344,13 @@ impl<'a> App<'a> {
             return style.fg(Color::LightBlue);
         } else {
             return style.fg(Color::White);
+        }
+    }
+
+    pub fn del(&mut self) {
+        match self.route.active_block {
+            ActiveBlock::Times => self.del_time(),
+            _ => (),
         }
     }
 
@@ -307,9 +403,13 @@ impl<'a> App<'a> {
     }
 
     pub fn next_time(&mut self) {
+        let len = self.times.times.len();
+        if len == 0 {
+            return;
+        }
         let i = match self.times_state.selected() {
             Some(i) => {
-                if i >= self.times.len() - 1 {
+                if i >= self.times.times.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -321,10 +421,14 @@ impl<'a> App<'a> {
     }
 
     fn previous_time(&mut self) {
+        let len = self.times.times.len();
+        if len == 0 {
+            return;
+        }
         let i = match self.times_state.selected() {
             Some(i) => {
                 if i == 0 {
-                    self.times.len() - 1
+                    self.times.times.len() - 1
                 } else {
                     i - 1
                 }
@@ -332,6 +436,28 @@ impl<'a> App<'a> {
             None => 0,
         };
         self.times_state.select(Some(i));
+    }
+
+    fn del_time(&mut self) {
+        match self.times_state.selected() {
+            Some(v) => {
+                // Edge cases (literally)
+                let len = self.times.times.len();
+                if len <= 0 || v >= len {
+                    return;
+                }
+                self.times.times.remove(len - v - 1);
+                // Go up one if selection fell off
+                if v == self.times.times.len() {
+                    self.previous_time();
+                }
+            },
+            None => (),
+        };
+    }
+
+    pub fn new_scramble(&mut self) {
+        self.scramble = gen_scramble();
     }
 
     pub fn on_tick(&self) {
