@@ -9,10 +9,14 @@ A pure-rust terminal user-interface for speedcubing
 Install rust if not already: https://www.rust-lang.org/tools/install
 
 Clone the repo
-`git clone https://github.com/hoehlrich/cube-tui`
+```bash
+git clone https://github.com/hoehlrich/cube-tui
+```
 
 Build it
-`cd cube-tui && cargo install --path .`
+```bash
+cd cube-tui && cargo install --path .
+```
 
 ## Features
 
