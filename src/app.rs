@@ -245,6 +245,11 @@ pub enum Dir {
     Right,
 }
 
+pub enum Tool {
+    Welcome,
+    Chart,
+}
+
 pub struct App<'a> {
     pub tick_rate: Duration,
     pub timer: CubeTimer,
@@ -256,6 +261,7 @@ pub struct App<'a> {
     layout: Vec<Vec<ActiveBlock>>,
     pub scramble: String,
     pub active_screen: Screen,
+    pub tool: Tool,
 }
 
 impl<'a> App<'a> {
@@ -275,6 +281,7 @@ impl<'a> App<'a> {
             ],
             scramble: gen_scramble(),
             active_screen: Screen::Default,
+            tool: Tool::Welcome,
         })
     }
 

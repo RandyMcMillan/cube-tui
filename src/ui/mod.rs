@@ -11,11 +11,12 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
+    widgets::{Block, Borders, Cell, Chart, Paragraph, Row, Table, Wrap},
     Frame, Terminal,
 };
 
-const HELP_TEXT: &'static str = include_str!("../help.txt");
+const HELP_TEXT: &'static str = include_str!("../text/help.txt");
+const WELCOME_TEXT: &'static str = include_str!("../text/welcome.txt");
 
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
     // Load times from file
@@ -286,17 +287,25 @@ fn render_stat<B: Backend>(
 }
 
 fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let text = format!("\n\n{:?}\n{:?}", app.route.active_block, app.pos);
+    match app.tool {
+        Tool::Welcome => render_welcome(f, app, layout_chunk),
+        Tool::Chart => render_chart(f, app, layout_chunk),
+    }
+}
+
+fn render_welcome<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let border_style = app.get_border_style_from_id(ActiveBlock::Main);
-    let paragraph = Paragraph::new(text)
+    let paragraph = Paragraph::new(WELCOME_TEXT)
         .block(
             Block::default()
-                .title("Main")
+                .title("Welcome!")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
-        .style(Style::default().fg(Color::White))
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .alignment(Alignment::Left);
     f.render_widget(paragraph, layout_chunk);
+}
+
+fn render_chart<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let border_style = app.get_border_style_from_id(ActiveBlock::Stats);
 }
