@@ -8,5 +8,6 @@ Navigate down                                           j               Default
 Navigate up                                             k               Default
 Navigate right                                          l               Default
 Delete the selected item                                d               Times block
+Write times                                             c-w             Any
 Opens this menu                                         ?               Any
 

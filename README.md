@@ -25,15 +25,15 @@ cd cube-tui && cargo install --path .
 1. Time's your solves
 2. Generates stats for your solves
 3. Generates a random scramble
-4. Runs lightweight, in the terminal, and with pure rust
+4. Graph solves
+5. Runs lightweight, in the terminal, and with pure rust
 
 ### What it will do
 
-1. Graph solves
-2. More tools (scramble display, stats, solver)
-3. Multi-stage solves
-4. Manage sessions for different cubes
-5. Generate a scramble correctly (instead of random turns)
+1. More tools (scramble display, solver)
+2. Multi-stage solves
+3. Manage sessions for different cubes
+4. Generate a scramble correctly (instead of random turns)
 
 ### What it doesn't do
 

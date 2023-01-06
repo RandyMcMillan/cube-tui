@@ -1,6 +1,5 @@
 use super::app::*;
-use crossterm::event::{self, Event, KeyCode};
-use ordered_float::OrderedFloat;
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::{
     env,
     error::Error,
@@ -11,7 +10,12 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Cell, Chart, Paragraph, Row, Table, Wrap},
+    symbols,
+    text::Span,
+    widgets::{
+        Axis, Block, Borders, Cell, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
+        Table, Wrap,
+    },
     Frame, Terminal,
 };
 
@@ -19,7 +23,7 @@ const HELP_TEXT: &'static str = include_str!("../text/help.txt");
 const WELCOME_TEXT: &'static str = include_str!("../text/welcome.txt");
 
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
-    // Load times from file
+    // Create app and load times
     let pathstr = env::var("HOME")? + "/.local/share/cube-tui/times";
     let path = Path::new(&pathstr);
     let mut app = App::new(Duration::from_millis(1000), path)?;
@@ -28,7 +32,7 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
     // Main loop and tick logic
     let mut last_tick = Instant::now();
     loop {
-        terminal.draw(|f| match app.active_screen {
+        terminal.draw(|f| match app.route.screen {
             Screen::Default => render_default(f, &mut app),
             Screen::Help => render_help(f),
         })?;
@@ -37,33 +41,10 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
         let timeout = app
             .tick_rate
             .checked_sub(last_tick.elapsed())
-            .unwrap_or_else(|| Duration::from_secs(0));
+            .unwrap_or(Duration::from_secs(0));
         if event::poll(timeout)? {
-            if let Event::Key(key) = event::read()? {
-                match key.code {
-                    KeyCode::Char('q') => {
-                        app.write_times()?;
-                        return Ok(());
-                    }
-                    KeyCode::Char(' ') => match app.timer.space_press() {
-                        Some(mut t) => {
-                            t.gen_stats(&app.times.times);
-                            app.times.insert(t);
-                            app.tick_rate = Duration::from_millis(1000);
-                            app.new_scramble();
-                        }
-                        None => app.tick_rate = Duration::from_millis(100),
-                    },
-                    KeyCode::Esc => app.esc(),
-                    KeyCode::Enter => app.route.enter(),
-                    KeyCode::Char('h') => app.mv(Dir::Left),
-                    KeyCode::Char('j') => app.mv(Dir::Down),
-                    KeyCode::Char('k') => app.mv(Dir::Up),
-                    KeyCode::Char('l') => app.mv(Dir::Right),
-                    KeyCode::Char('d') => app.del(),
-                    KeyCode::Char('?') => app.help(),
-                    _ => (),
-                }
+            if handle_input(&mut app)? {
+                return Ok(());
             }
         }
         if last_tick.elapsed() >= app.tick_rate {
@@ -73,8 +54,52 @@ pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>>
     }
 }
 
+fn handle_input(app: &mut App) -> Result<bool, Box<dyn Error>> {
+    if let Event::Key(key) = event::read()? {
+        match key.modifiers {
+            KeyModifiers::NONE => match key.code {
+                KeyCode::Char('q') => {
+                    app.write_times()?;
+                    return Ok(true);
+                }
+                KeyCode::Char(' ') => match app.timer.space_press() {
+                    Some(mut t) => {
+                        t.gen_stats(&app.times.times);
+                        app.times.insert(t);
+                        app.tick_rate = Duration::from_millis(1000);
+                        app.new_scramble();
+                    }
+                    None => app.tick_rate = Duration::from_millis(100),
+                },
+                KeyCode::Esc => app.esc(),
+                KeyCode::Enter => app.route.enter(),
+                KeyCode::Char('h') => app.mv(Dir::Left),
+                KeyCode::Char('j') => app.mv(Dir::Down),
+                KeyCode::Char('k') => app.mv(Dir::Up),
+                KeyCode::Char('l') => app.mv(Dir::Right),
+                KeyCode::Char('d') => app.del(),
+                KeyCode::Char('?') => app.help(),
+                _ => (),
+            },
+            KeyModifiers::CONTROL => match key.code {
+                KeyCode::Char('w') => {
+                    app.write_times()?;
+                    app.load_times()?;
+                },
+                KeyCode::Char('c') => app.route.esc(),
+                KeyCode::Char('q') => {
+                    app.write_times()?;
+                    return Ok(true);
+                }
+                _ => (),
+            },
+            _ => (),
+        }
+    }
+    Ok(false)
+}
+
 fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    // define chunks
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Length(40), Constraint::Percentage(100)].as_ref())
@@ -104,12 +129,10 @@ fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(chunks[1]);
 
-    // render left side
     render_help_and_tools(f, app, left_chunks[0]);
     render_timer(f, app, left_chunks[1]);
     render_times(f, app, left_chunks[2]);
 
-    // render right side
     render_scramble(f, app, right_chunks[0]);
     render_bests(f, app, right_chunks[1]);
     render_main(f, app, right_chunks[2]);
@@ -147,11 +170,22 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
     f.render_widget(paragraph, chunks[0]);
 
     let border_style = app.get_border_style_from_id(ActiveBlock::Tools);
-    let block = Block::default()
-        .title("Tools")
-        .borders(Borders::ALL)
-        .style(border_style);
-    f.render_widget(block, chunks[1]);
+    let selected_style = app.get_highlight_style_from_id(ActiveBlock::Tools);
+    let items = [
+        ListItem::new(Tool::Welcome.to_string()),
+        ListItem::new(Tool::Chart.to_string()),
+    ];
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .title("Tools")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        )
+        .style(Style::default().fg(Color::White))
+        .highlight_style(selected_style);
+
+    f.render_stateful_widget(list, chunks[1], &mut app.tools_state);
 }
 
 fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
@@ -265,7 +299,7 @@ fn render_stat<B: Backend>(
     f: &mut Frame<B>,
     app: &mut App,
     title: &str,
-    stat: Option<OrderedFloat<f32>>,
+    stat: Option<f64>,
     layout_chunk: Rect,
 ) {
     let border_style = app.get_border_style_from_id(ActiveBlock::Stats);
@@ -287,7 +321,7 @@ fn render_stat<B: Backend>(
 }
 
 fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    match app.tool {
+    match app.active_tool {
         Tool::Welcome => render_welcome(f, app, layout_chunk),
         Tool::Chart => render_chart(f, app, layout_chunk),
     }
@@ -307,5 +341,98 @@ fn render_welcome<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rec
 }
 
 fn render_chart<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let border_style = app.get_border_style_from_id(ActiveBlock::Stats);
+    let singles = app
+        .times
+        .times
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (i as f64, v.time))
+        .collect::<Vec<(f64, f64)>>();
+    let ao5s = &app
+        .times
+        .iter()
+        .enumerate()
+        .filter_map(|(i, v)| match v.ao5 {
+            Some(a) => Some((i as f64, a)),
+            None => None,
+        })
+        .collect::<Vec<(f64, f64)>>();
+    let ao12s = &app
+        .times
+        .iter()
+        .enumerate()
+        .filter_map(|(i, v)| match v.ao12 {
+            Some(a) => Some((i as f64, a)),
+            None => None,
+        })
+        .collect::<Vec<(f64, f64)>>();
+
+    let border_style = app.get_border_style_from_id(ActiveBlock::Main);
+    let datasets = vec![
+        Dataset::default()
+            .name("single")
+            .marker(symbols::Marker::Dot)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Cyan))
+            .data(&singles),
+        Dataset::default()
+            .name("ao5")
+            .marker(symbols::Marker::Dot)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::LightGreen))
+            .data(&ao5s),
+        Dataset::default()
+            .name("ao12")
+            .marker(symbols::Marker::Dot)
+            .graph_type(GraphType::Line)
+            .style(Style::default().fg(Color::Magenta))
+            .data(&ao12s),
+    ];
+
+    let xmid = app.times.times.len() / 2;
+    let xmax = app.times.times.len();
+    let xmid_str = xmid.to_string();
+    let xmax_str = xmax.to_string();
+
+    let ymin = app.times.pbsingle.unwrap_or(0.0);
+    let ymax = app.times.worst;
+    let ymid = app.times.rollingavg.unwrap_or(0.0);
+    let ymin_str = format!("{:.1}", ymin);
+    let ymid_str = format!("{:.1}", ymid);
+    let ymax_str = format!("{:.1}", ymax);
+
+    let chart = Chart::new(datasets)
+        .block(
+            Block::default()
+                .title("Chart")
+                .border_style(border_style)
+                .borders(Borders::ALL),
+        )
+        .x_axis(
+            Axis::default()
+                .title(Span::styled("n", Style::default()))
+                .style(Style::default().fg(Color::White))
+                .bounds([0.0, app.times.times.len() as f64])
+                .labels(
+                    ["0", &xmid_str, &xmax_str]
+                        .iter()
+                        .cloned()
+                        .map(Span::from)
+                        .collect(),
+                ),
+        )
+        .y_axis(
+            Axis::default()
+                .title(Span::styled("Time", Style::default()))
+                .style(Style::default().fg(Color::White))
+                .bounds([ymin, ymax])
+                .labels(
+                    [ymin_str, ymid_str, ymax_str]
+                        .iter()
+                        .cloned()
+                        .map(Span::from)
+                        .collect(),
+                ),
+        );
+    f.render_widget(chart, layout_chunk);
 }
