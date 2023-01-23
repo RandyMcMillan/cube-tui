@@ -21,6 +21,7 @@ use tui::{
 
 const HELP_TEXT: &'static str = include_str!("../text/help.txt");
 const WELCOME_TEXT: &'static str = include_str!("../text/welcome.txt");
+const CUBE_TEXT: &'static str = include_str!("../text/cube.txt");
 
 pub fn run<B: Backend>(terminal: &mut Terminal<B>) -> Result<(), Box<dyn Error>> {
     // Create app and load times
@@ -86,7 +87,7 @@ fn handle_input(app: &mut App) -> Result<bool, Box<dyn Error>> {
                     app.write_times()?;
                     app.load_times()?;
                 },
-                KeyCode::Char('c') => app.route.esc(),
+                KeyCode::Char('c') => app.esc(),
                 KeyCode::Char('q') => {
                     app.write_times()?;
                     return Ok(true);
@@ -174,6 +175,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
     let items = [
         ListItem::new(Tool::Welcome.to_string()),
         ListItem::new(Tool::Chart.to_string()),
+        ListItem::new(Tool::Cube.to_string()),
     ];
     let list = List::new(items)
         .block(
@@ -324,6 +326,7 @@ fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) 
     match app.active_tool {
         Tool::Welcome => render_welcome(f, app, layout_chunk),
         Tool::Chart => render_chart(f, app, layout_chunk),
+        Tool::Cube => render_cube(f, app, layout_chunk),
     }
 }
 
@@ -333,6 +336,19 @@ fn render_welcome<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rec
         .block(
             Block::default()
                 .title("Welcome!")
+                .borders(Borders::ALL)
+                .border_style(border_style),
+        )
+        .alignment(Alignment::Left);
+    f.render_widget(paragraph, layout_chunk);
+}
+
+fn render_cube<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+    let border_style = app.get_border_style_from_id(ActiveBlock::Main);
+    let paragraph = Paragraph::new(CUBE_TEXT)
+        .block(
+            Block::default()
+                .title("Cube")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )

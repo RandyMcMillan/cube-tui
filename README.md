@@ -4,7 +4,7 @@ A pure-rust terminal user-interface for speedcubing
 
 ![Welcome screen of cube-tui](images/welcome.jpg)
 
-## Installation
+## Installation (GNU/Linux)
 
 Install rust if not already: https://www.rust-lang.org/tools/install
 

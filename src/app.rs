@@ -271,6 +271,7 @@ impl CubeTimer {
 pub enum Tool {
     Welcome,
     Chart,
+    Cube,
 }
 
 impl fmt::Display for Tool {
@@ -278,6 +279,7 @@ impl fmt::Display for Tool {
         let text = match self {
             Tool::Welcome => "Welcome",
             Tool::Chart => "Chart",
+            Tool::Cube => "Cube",
         };
         write!(f, "{}", text)?;
         Ok(())
@@ -327,7 +329,7 @@ impl<'a> App<'a> {
                 vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
             ],
             scramble: gen_scramble(),
-            tools: vec![Tool::Welcome, Tool::Chart],
+            tools: vec![Tool::Welcome, Tool::Chart, Tool::Cube],
             active_tool: Tool::Welcome,
         })
     }
