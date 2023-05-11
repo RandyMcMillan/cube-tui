@@ -222,6 +222,7 @@ fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
+    let numrows = app.times.times.len();
     let rows = app.times.times.iter().rev().enumerate().map(|(i, t)| {
         let ao5 = match t.ao5 {
             Some(v) => format!("{:.2}", v),
@@ -232,7 +233,7 @@ fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
             None => "-".to_string(),
         };
         let cells = vec![
-            i.to_string(),
+            (numrows-i).to_string(),
             format!("{:.2}", t.time),
             format!("{}", ao5),
             format!("{}", ao12),
