@@ -422,12 +422,26 @@ impl<'a> App<'a> {
             ActiveBlock::Times => match dir {
                 Dir::Up => self.previous_time(),
                 Dir::Down => self.next_time(),
-                _ => (),
+                Dir::Right => {
+                    self.route.active_block = ActiveBlock::Home;
+                    self.mv(Dir::Right);
+                },
+                Dir::Left => {
+                    self.route.active_block = ActiveBlock::Home;
+                    self.mv(Dir::Left);
+                },
             },
             ActiveBlock::Tools => match dir {
                 Dir::Up => self.next_tool(),
                 Dir::Down => self.previous_tool(),
-                _ => (),
+                Dir::Right => {
+                    self.route.active_block = ActiveBlock::Home;
+                    self.mv(Dir::Right);
+                },
+                Dir::Left => {
+                    self.route.active_block = ActiveBlock::Home;
+                    self.mv(Dir::Left);
+                },
             },
             _ => (),
         }
