@@ -410,15 +410,6 @@ impl<'a> App<'a> {
 
     pub fn mv(&mut self, dir: Dir) {
         match self.route.active_block {
-            ActiveBlock::Home => {
-                match dir {
-                    Dir::Up => self.mv_up(),
-                    Dir::Down => self.mv_down(),
-                    Dir::Right => self.mv_right(),
-                    Dir::Left => self.mv_left(),
-                }
-                self.route.selected_block = self.layout[self.pos.0][self.pos.1];
-            }
             ActiveBlock::Times => match dir {
                 Dir::Up => self.previous_time(),
                 Dir::Down => self.next_time(),
@@ -443,7 +434,16 @@ impl<'a> App<'a> {
                     self.mv(Dir::Left);
                 },
             },
-            _ => (),
+            _ => {
+                match dir {
+                    Dir::Up => self.mv_up(),
+                    Dir::Down => self.mv_down(),
+                    Dir::Right => self.mv_right(),
+                    Dir::Left => self.mv_left(),
+                }
+                self.route.active_block = ActiveBlock::Home;
+                self.route.selected_block = self.layout[self.pos.0][self.pos.1];
+            }
         }
     }
 
