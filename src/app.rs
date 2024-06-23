@@ -335,6 +335,9 @@ impl<'a> App<'a> {
     }
 
     pub fn load_times(&mut self) -> Result<(), Box<dyn Error>> {
+        let directory = self.path.with_file_name("");
+        fs::create_dir_all(directory)?;
+
         // Create file if it doesn't exist
         match fs::File::open(&self.path) {
             Err(_) => _ = fs::File::create(&self.path)?,
