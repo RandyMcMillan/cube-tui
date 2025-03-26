@@ -16,6 +16,7 @@
     pub mod evt_loop;
     pub mod global_rt;
     pub mod handlers;
+    pub mod system_command;
     pub mod terminal;
     pub mod ui;
     pub mod utils;

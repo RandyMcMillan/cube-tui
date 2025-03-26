@@ -13,6 +13,9 @@ mod app;
 mod cube;
 mod global_rt;
 mod ui;
+mod system_command;
+
+use cube_tui::system_command::system_command_test;
 use cube_tui::CompleteConfig;
 use cube_tui::WrapErr;
 use crate::global_rt::global_rt;
@@ -49,6 +52,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let global_rt_result = global_rt().spawn(async move {
         println!("global_rt async task!");
+        String::from("global_rt async task!")
+    });
+    println!("global_rt_result={:?}", global_rt_result.await);
+    let global_rt_result = global_rt().spawn(async move {
+        system_command_test();
         String::from("global_rt async task!")
     });
     println!("global_rt_result={:?}", global_rt_result.await);
