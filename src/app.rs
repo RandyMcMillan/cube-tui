@@ -1,4 +1,5 @@
 use super::cube::gen_scramble;
+use super::global_rt::global_rt;
 use ordered_float::*;
 use std::{
     error::Error,
@@ -419,11 +420,11 @@ impl<'a> App<'a> {
                 Dir::Right => {
                     self.route.active_block = ActiveBlock::Home;
                     self.mv(Dir::Right);
-                },
+                }
                 Dir::Left => {
                     self.route.active_block = ActiveBlock::Home;
                     self.mv(Dir::Left);
-                },
+                }
             },
             ActiveBlock::Tools => match dir {
                 Dir::Up => self.next_tool(),
@@ -431,11 +432,11 @@ impl<'a> App<'a> {
                 Dir::Right => {
                     self.route.active_block = ActiveBlock::Home;
                     self.mv(Dir::Right);
-                },
+                }
                 Dir::Left => {
                     self.route.active_block = ActiveBlock::Home;
                     self.mv(Dir::Left);
-                },
+                }
             },
             _ => {
                 match dir {

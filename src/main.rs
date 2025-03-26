@@ -11,10 +11,11 @@
 
 use clap::{Arg, ArgAction, Command, Parser};
 
-mod ui;
 mod app;
 mod cube;
 mod global_rt;
+mod ui;
+use crate::global_rt::global_rt;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
@@ -23,7 +24,33 @@ use crossterm::{
 use std::{error::Error, io};
 use tui::{backend::CrosstermBackend, Terminal};
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short, long, default_value = "user")]
+    name: String,
+
+    /// Number of times to greet
+    #[arg(short, long, default_value_t = 1)]
+    count: u8,
+    #[arg(short = 't', long)]
+    tui: bool,
+    #[arg(long)]
+    chat: bool,
+    #[arg(long = "cfg", default_value = "")]
+    config: String,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let args = Args::parse();
+
+    let global_rt_result = global_rt().spawn(async move {
+        println!("global_rt async task!");
+        String::from("global_rt async task!")
+    });
+    println!("global_rt_result={:?}", global_rt_result);
+
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -46,6 +73,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Err(err) = res {
         eprintln!("{:?}", err)
     }
-    
+
     Ok(())
 }

@@ -92,7 +92,11 @@ impl Distribution<Move> for Standard {
 
 pub fn gen_scramble() -> String {
     let mut s = String::new();
-    let mut l = Move { face: Face::None, prime: false, half_turn: false };
+    let mut l = Move {
+        face: Face::None,
+        prime: false,
+        half_turn: false,
+    };
     let _ = (0..21)
         .into_iter()
         .map(|_| {

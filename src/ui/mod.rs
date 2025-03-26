@@ -86,7 +86,7 @@ fn handle_input(app: &mut App) -> Result<bool, Box<dyn Error>> {
                 KeyCode::Char('w') => {
                     app.write_times()?;
                     app.load_times()?;
-                },
+                }
                 KeyCode::Char('c') => app.esc(),
                 KeyCode::Char('q') => {
                     app.write_times()?;
@@ -233,7 +233,7 @@ fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
             None => "-".to_string(),
         };
         let cells = vec![
-            (numrows-i).to_string(),
+            (numrows - i).to_string(),
             format!("{:.2}", t.time),
             format!("{}", ao5),
             format!("{}", ao12),
