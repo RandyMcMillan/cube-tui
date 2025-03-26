@@ -52,6 +52,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     println!("global_rt_result={:?}", global_rt_result.await);
 
+    for args in 0..args.count {
+        let global_rt_result = global_rt()
+            .spawn(async move {
+                println!("global_rt async task! {}", &args.clone());
+            })
+            .await;
+        println!("global_rt_result={:?}!", global_rt_result);
+    }
+
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
