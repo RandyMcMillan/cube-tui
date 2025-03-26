@@ -5,7 +5,6 @@ use crossterm::{
 use std::io::{stdout, Write};
 use tui::style::Modifier;
 use tui::{backend::CrosstermBackend, layout::Rect, style::Color, widgets::Block, Terminal};
-
 use tui::style::Style;
 
 fn color_name(color: Color) -> &'static str {
@@ -26,14 +25,11 @@ fn color_name(color: Color) -> &'static str {
         Color::LightBlue => "LightBlue",
         Color::LightMagenta => "LightMagenta",
         Color::LightCyan => "LightCyan",
-        //Color::LightWhite => "LightWhite",
-        Color::Reset => todo!(),
+        Color::Reset => "Reset", // Added Reset
         Color::Rgb(r, g, b) => {
-            // Format RGB as a string
             return Box::leak(format!("Rgb({}, {}, {})", r, g, b).into_boxed_str());
         }
         Color::Indexed(i) => {
-            // Format Indexed as a string
             return Box::leak(format!("Indexed({})", i).into_boxed_str());
         }
     }
@@ -72,15 +68,10 @@ fn main() -> Result<(), std::io::Error> {
         let width = 10;
         let height = 2;
 
-        let style = Style::default()
-            .fg(Color::Black)
-            .bg(colors[0])
-            .add_modifier(Modifier::ITALIC | Modifier::BOLD);
-
-        for index in 1..colors.len() {
+        for index in 0..colors.len() {
             for color in colors {
                 let block = Block::default()
-                    .style(Style::default().fg(colors[index - 1]).bg(color))
+                    .style(Style::default().fg(colors[index]).bg(color))
                     .title(color_name(color));
                 let area = Rect::new(x, y, width, height);
 
@@ -92,6 +83,8 @@ fn main() -> Result<(), std::io::Error> {
                     y += height;
                 }
             }
+            y += height; // Move to the next row after each color set
+            x=0; // reset x to zero.
         }
     })?;
 
