@@ -76,8 +76,8 @@ impl SystemCommand {
 }
 
 pub fn system_command_test() {
-    let mut ls_command = SystemCommand::new("ls");
-    ls_command.arg("-l").arg("-a");
+    let mut ls_command = SystemCommand::new("git");
+    ls_command.arg("status").arg("-s");
 
     match ls_command.execute_and_get_stdout() {
         Ok(output) => println!("Output:\n{}", output),
