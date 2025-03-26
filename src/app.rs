@@ -398,14 +398,14 @@ impl<'a> App<'a> {
     pub fn get_highlight_style_from_id(&self, id: ActiveBlock) -> Style {
         let style = Style::default().add_modifier(Modifier::BOLD);
 
-		//
         if id == self.route.active_block {
-            return style.fg(Color::White);
+            return style.fg(Color::Black);
         } else if id == self.route.selected_block {
-            return style.fg(Color::White);
+            return style.fg(Color::Black);
         } else {
             return style.fg(Color::Black);
         }
+
     }
 
     pub fn del(&mut self) {
