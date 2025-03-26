@@ -23,8 +23,9 @@ impl Route {
     fn default() -> Self {
         Self {
             screen: Screen::Default,
-            selected_block: ActiveBlock::Times,
-            active_block: ActiveBlock::Home,
+            selected_block: ActiveBlock::Tools,
+            //this plus new pos (line 329-ish) determine initial navigation move
+            active_block: ActiveBlock::Tools,
         }
     }
 
@@ -324,7 +325,8 @@ impl<'a> App<'a> {
             times: Times::new(),
             times_state: TableState::default(),
             tools_state,
-            pos: (0, 2),
+            //this plus default active block determine initial navigation move
+            pos: (0, 0),
             layout: vec![
                 vec![ActiveBlock::Tools, ActiveBlock::Timer, ActiveBlock::Times],
                 vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
@@ -387,21 +389,22 @@ impl<'a> App<'a> {
         if id == self.route.active_block {
             return style.fg(Color::LightGreen).add_modifier(Modifier::BOLD);
         } else if id == self.route.selected_block {
-            return style.fg(Color::LightBlue).add_modifier(Modifier::BOLD);
+            return style.fg(Color::LightGreen).add_modifier(Modifier::BOLD);
         } else {
-            return style.fg(Color::Gray);
+            return style.fg(Color::Black);
         }
     }
 
     pub fn get_highlight_style_from_id(&self, id: ActiveBlock) -> Style {
         let style = Style::default().add_modifier(Modifier::BOLD);
 
+		//
         if id == self.route.active_block {
-            return style.fg(Color::LightGreen);
-        } else if id == self.route.selected_block {
-            return style.fg(Color::LightBlue);
-        } else {
             return style.fg(Color::White);
+        } else if id == self.route.selected_block {
+            return style.fg(Color::White);
+        } else {
+            return style.fg(Color::Gray);
         }
     }
 
