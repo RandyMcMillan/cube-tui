@@ -42,14 +42,15 @@ struct Args {
     config: String,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let global_rt_result = global_rt().spawn(async move {
         println!("global_rt async task!");
         String::from("global_rt async task!")
     });
-    println!("global_rt_result={:?}", global_rt_result);
+    println!("global_rt_result={:?}", global_rt_result.await);
 
     // setup terminal
     enable_raw_mode()?;
