@@ -385,27 +385,24 @@ impl<'a> App<'a> {
 
     pub fn get_border_style_from_id(&self, id: ActiveBlock) -> Style {
         let style = Style::default();
-
         if id == self.route.active_block {
-            return style.fg(Color::DarkGray).add_modifier(Modifier::BOLD);
+            return style.fg(Color::Magenta).add_modifier(Modifier::BOLD | Modifier::ITALIC);
         } else if id == self.route.selected_block {
-            return style.fg(Color::Reset).add_modifier(Modifier::BOLD);
+            return style.fg(Color::Magenta);//.add_modifier(Modifier::BOLD);
         } else {
-            return style.fg(Color::Black);
+            return style.fg(Color::Gray);
         }
     }
 
     pub fn get_highlight_style_from_id(&self, id: ActiveBlock) -> Style {
-        let style = Style::default().add_modifier(Modifier::BOLD);
-
+        let style = Style::default();
         if id == self.route.active_block {
-            return style.fg(Color::Black);
+            return style.fg(Color::Magenta);
         } else if id == self.route.selected_block {
-            return style.fg(Color::Black);
+            return style.fg(Color::Magenta).add_modifier(Modifier::BOLD | Modifier::ITALIC)
         } else {
-            return style.fg(Color::Black);
+            return style.fg(Color::Magenta);
         }
-
     }
 
     pub fn del(&mut self) {
