@@ -13,7 +13,8 @@ mod app;
 mod cube;
 mod global_rt;
 mod ui;
-
+use cube_tui::CompleteConfig;
+use cube_tui::WrapErr;
 use crate::global_rt::global_rt;
 use clap::{Arg, ArgAction, Command, Parser};
 use crossterm::{
