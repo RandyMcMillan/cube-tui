@@ -9,13 +9,13 @@
     clippy::future_not_send
 )]
 
-use clap::{Arg, ArgAction, Command, Parser};
-
 mod app;
 mod cube;
 mod global_rt;
 mod ui;
+
 use crate::global_rt::global_rt;
+use clap::{Arg, ArgAction, Command, Parser};
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
