@@ -61,6 +61,71 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("global_rt_result={:?}!", global_rt_result);
     }
 
+    let cmd = Command::new("gnostr-chat")
+        .arg(
+            Arg::new("name")
+                .long("name")
+                .short('n')
+                //.required(true)
+                .action(ArgAction::Set)
+                .default_value("-"),
+        )
+        .arg(
+            Arg::new("count")
+                .long("count")
+                .short('c')
+                //.required(true)
+                .action(ArgAction::Set)
+                .default_value("0"),
+        )
+        .arg(
+            Arg::new("tui")
+                .long("tui")
+                .short('t')
+                //.required(true)
+                .action(ArgAction::SetTrue)
+                .default_value("false"),
+        )
+        .arg(
+            Arg::new("chat")
+                .long("chat")
+                //.required(true)
+                .action(ArgAction::SetTrue)
+                .default_value("false"),
+        )
+        .arg(Arg::new("config").long("cfg").action(ArgAction::Set))
+        .get_matches();
+
+    assert!(cmd.clone().contains_id("tui"));
+
+    let matches = cmd.clone();
+    assert!(matches.contains_id("tui"));
+
+    let config = CompleteConfig::new()
+        .wrap_err("Configuration error.")
+        .unwrap();
+
+    if let Some(c) = matches.get_one::<bool>("tui") {
+        if matches.get_flag("tui") {
+            println!("Value for --tui: {c}");
+            assert_eq!(matches.get_flag("tui"), true);
+        }
+    }
+    if let Some(c) = matches.get_one::<bool>("chat") {
+        if matches.get_flag("chat") {
+            let global_rt_result = global_rt()
+                .spawn(async move {
+                    println!("global_rt async task!");
+                    //evt_loop(input_rx, peer_tx, topic).await.unwrap();
+                    String::from("global_rt async task!");
+                })
+                .await;
+            println!("global_rt_result={:?}", global_rt_result?);
+            println!("Value for --chat: {c}");
+            assert_eq!(matches.get_flag("tui"), true);
+        }
+    }
+
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
