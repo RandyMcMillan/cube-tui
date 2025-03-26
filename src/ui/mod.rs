@@ -216,7 +216,7 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
 
 fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let selected_style = app.get_highlight_style_from_id(ActiveBlock::Times);
-    let normal_style = Style::default().fg(Color::White);
+    let normal_style = Style::default().fg(Color::Gray);
     let header_cells = ["i", "time", "ao5", "ao12"].iter().map(|h| Cell::from(*h));
     let header = Row::new(header_cells)
         .style(normal_style)

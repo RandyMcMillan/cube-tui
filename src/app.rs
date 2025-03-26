@@ -387,9 +387,9 @@ impl<'a> App<'a> {
         let style = Style::default();
 
         if id == self.route.active_block {
-            return style.fg(Color::LightGreen).add_modifier(Modifier::BOLD);
+            return style.fg(Color::DarkGray).add_modifier(Modifier::BOLD);
         } else if id == self.route.selected_block {
-            return style.fg(Color::LightGreen).add_modifier(Modifier::BOLD);
+            return style.fg(Color::Reset).add_modifier(Modifier::BOLD);
         } else {
             return style.fg(Color::Black);
         }
@@ -404,7 +404,7 @@ impl<'a> App<'a> {
         } else if id == self.route.selected_block {
             return style.fg(Color::White);
         } else {
-            return style.fg(Color::Gray);
+            return style.fg(Color::Black);
         }
     }
 
