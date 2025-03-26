@@ -196,10 +196,10 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     let mut paragraphstyle = Style::default();
     paragraphstyle = match app.timer.on {
         false => match app.timer.lasttime {
-            Some(_) => paragraphstyle.fg(Color::LightBlue),
-            None => paragraphstyle.fg(Color::White),
+            Some(_) => paragraphstyle.fg(Color::White),
+            None => paragraphstyle.fg(Color::Gray),
         },
-        true => paragraphstyle.fg(Color::LightGreen),
+        true => paragraphstyle.fg(Color::Magenta),
     };
     let paragraph = Paragraph::new(text)
         .block(
