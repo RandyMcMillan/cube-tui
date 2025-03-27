@@ -264,7 +264,7 @@ fn render_topic<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     let paragraph = Paragraph::new(format!("\n{}", app.scramble.clone()))
         .block(
             Block::default()
-                .title(" Topic/Header ")
+                .title(" Meta/Header/Topic ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
