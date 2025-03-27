@@ -87,6 +87,7 @@ pub fn system_command_test() {
     }
     let mut git_diff = SystemCommand::new("git");
     git_diff.arg("diff");
+    git_diff.arg("HEAD");
 
     match git_diff.execute_and_get_stdout() {
         Ok(output) => println!("GitDiff:\n{}", output),
