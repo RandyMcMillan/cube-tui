@@ -175,7 +175,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
     let items = [
         ListItem::new(Tool::Gnostr.to_string()),
         ListItem::new(Tool::Relay.to_string()),
-        ListItem::new(Tool::Cube.to_string()),
+        ListItem::new(Tool::Commit.to_string()),
     ];
     let list = List::new(items)
         .block(
@@ -327,7 +327,7 @@ fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) 
     match app.active_tool {
         Tool::Gnostr => render_gnostr_chat(f, app, layout_chunk),
         Tool::Relay => render_relay(f, app, layout_chunk),
-        Tool::Cube => render_cube(f, app, layout_chunk),
+        Tool::Commit => render_cube(f, app, layout_chunk),
     }
 }
 
@@ -349,7 +349,7 @@ fn render_cube<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) 
     let paragraph = Paragraph::new(CUBE_TEXT)
         .block(
             Block::default()
-                .title(" Cube ")
+                .title(" Commit ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )

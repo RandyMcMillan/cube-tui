@@ -273,7 +273,7 @@ impl CubeTimer {
 pub enum Tool {
     Gnostr,
     Relay,
-    Cube,
+    Commit,
 }
 
 impl fmt::Display for Tool {
@@ -281,7 +281,7 @@ impl fmt::Display for Tool {
         let text = match self {
             Tool::Gnostr => "Gnostr",
             Tool::Relay => "Relay",
-            Tool::Cube => "Cube",
+            Tool::Commit => "Commit",
         };
         write!(f, "{}", text)?;
         Ok(())
@@ -332,7 +332,7 @@ impl<'a> App<'a> {
                 vec![ActiveBlock::Stats, ActiveBlock::Scramble, ActiveBlock::Main],
             ],
             scramble: gen_scramble(),
-            tools: vec![Tool::Gnostr, Tool::Relay, Tool::Cube],
+            tools: vec![Tool::Gnostr, Tool::Relay, Tool::Commit],
             active_tool: Tool::Gnostr,
         })
     }
