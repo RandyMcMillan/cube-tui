@@ -54,6 +54,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let global_rt_result = global_rt().spawn(async move {
+	let _ = chat();
         println!("global_rt async task!");
         String::from("global_rt async task!")
     });
@@ -113,10 +114,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let matches = cmd.clone();
     assert!(matches.contains_id("tui"));
 
-    let config = CompleteConfig::new()
-        .wrap_err("Configuration error.")
-        .unwrap();
-
     if let Some(c) = matches.get_one::<bool>("tui") {
         if matches.get_flag("tui") {
             println!("Value for --tui: {c}");
@@ -137,6 +134,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             assert_eq!(matches.get_flag("tui"), true);
         }
     }
+    color_eyre::install().unwrap();
+
+    let config = CompleteConfig::new()
+        .wrap_err("Configuration error.")
+        .unwrap();
 
     // setup terminal
     enable_raw_mode()?;

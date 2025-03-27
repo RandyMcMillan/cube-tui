@@ -271,7 +271,7 @@ impl CubeTimer {
 
 #[derive(Copy, Clone)]
 pub enum Tool {
-    Welcome,
+    GnostrChat,
     Chart,
     Cube,
 }
@@ -279,7 +279,7 @@ pub enum Tool {
 impl fmt::Display for Tool {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let text = match self {
-            Tool::Welcome => "Welcome",
+            Tool::GnostrChat => "GnostrChat",
             Tool::Chart => "Chart",
             Tool::Cube => "Cube",
         };
@@ -332,8 +332,8 @@ impl<'a> App<'a> {
                 vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
             ],
             scramble: gen_scramble(),
-            tools: vec![Tool::Welcome, Tool::Chart, Tool::Cube],
-            active_tool: Tool::Welcome,
+            tools: vec![Tool::GnostrChat, Tool::Chart, Tool::Cube],
+            active_tool: Tool::GnostrChat,
         })
     }
 

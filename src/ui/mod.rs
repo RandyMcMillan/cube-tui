@@ -122,7 +122,7 @@ fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(5),
+                Constraint::Length(10),
                 Constraint::Length(3),
                 Constraint::Percentage(100),
             ]
@@ -134,7 +134,7 @@ fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     render_timer(f, app, left_chunks[1]);
     render_times(f, app, left_chunks[2]);
 
-    render_scramble(f, app, right_chunks[0]);
+    render_topic(f, app, right_chunks[0]);
     render_bests(f, app, right_chunks[1]);
     render_main(f, app, right_chunks[2]);
 }
@@ -173,7 +173,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
     let border_style = app.get_border_style_from_id(ActiveBlock::Tools);
     let selected_style = app.get_highlight_style_from_id(ActiveBlock::Tools);
     let items = [
-        ListItem::new(Tool::Welcome.to_string()),
+        ListItem::new(Tool::GnostrChat.to_string()),
         ListItem::new(Tool::Chart.to_string()),
         ListItem::new(Tool::Cube.to_string()),
     ];
@@ -259,12 +259,12 @@ fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     f.render_stateful_widget(table, layout_chunk, &mut app.times_state);
 }
 
-fn render_scramble<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+fn render_topic<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let border_style = app.get_border_style_from_id(ActiveBlock::Scramble);
     let paragraph = Paragraph::new(format!("\n{}", app.scramble.clone()))
         .block(
             Block::default()
-                .title("Scramble")
+                .title("Topic")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -325,18 +325,18 @@ fn render_stat<B: Backend>(
 
 fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     match app.active_tool {
-        Tool::Welcome => render_welcome(f, app, layout_chunk),
+        Tool::GnostrChat => render_gnostr_chat(f, app, layout_chunk),
         Tool::Chart => render_chart(f, app, layout_chunk),
         Tool::Cube => render_cube(f, app, layout_chunk),
     }
 }
 
-fn render_welcome<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+fn render_gnostr_chat<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let border_style = app.get_border_style_from_id(ActiveBlock::Main);
     let paragraph = Paragraph::new(WELCOME_TEXT)
         .block(
             Block::default()
-                .title("Welcome!")
+                .title("GnostrChat!")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
