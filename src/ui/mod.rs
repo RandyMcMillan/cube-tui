@@ -103,16 +103,16 @@ fn handle_input(app: &mut App) -> Result<bool, Box<dyn Error>> {
 fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(40), Constraint::Percentage(100)].as_ref())
+        .constraints([Constraint::Percentage(33), Constraint::Min(100)].as_ref())
         .split(f.size());
 
     let left_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(3),
-                Constraint::Length(7),
-                Constraint::Percentage(100),
+                Constraint::Length(3),//help and tools height
+                Constraint::Length(3),//timer
+                Constraint::Percentage(100),//table
             ]
             .as_ref(),
         )
@@ -122,9 +122,9 @@ fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints(
             [
-                Constraint::Length(10),
-                Constraint::Length(3),
-                Constraint::Percentage(100),
+                Constraint::Length(3),//topic
+                Constraint::Length(10),//squares
+                Constraint::Percentage(100),//tools view
             ]
             .as_ref(),
         )
@@ -134,8 +134,8 @@ fn render_default<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     render_timer(f, app, left_chunks[1]);
     render_times(f, app, left_chunks[2]);
 
-    render_topic(f, app, right_chunks[0]);
-    render_bests(f, app, right_chunks[1]);
+    render_bests(f, app, right_chunks[0]);
+    render_topic(f, app, right_chunks[1]);
     render_main(f, app, right_chunks[2]);
 }
 
@@ -146,7 +146,7 @@ fn render_help<B: Backend>(f: &mut Frame<B>) {
         .split(f.size());
 
     let paragraph = Paragraph::new(HELP_TEXT)
-        .block(Block::default().title("Help").borders(Borders::ALL))
+        .block(Block::default().title(" > ").borders(Borders::ALL))
         .alignment(Alignment::Left);
     f.render_widget(paragraph, chunks[0]);
 }
@@ -154,14 +154,14 @@ fn render_help<B: Backend>(f: &mut Frame<B>) {
 fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .constraints([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref())
         .split(layout_chunk);
 
     let border_style = app.get_border_style_from_id(ActiveBlock::Help);
-    let paragraph = Paragraph::new("Press ? for help".to_string())
+    let paragraph = Paragraph::new("<?>".to_string())
         .block(
             Block::default()
-                .title("Help")
+                .title("")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -173,14 +173,14 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
     let border_style = app.get_border_style_from_id(ActiveBlock::Tools);
     let selected_style = app.get_highlight_style_from_id(ActiveBlock::Tools);
     let items = [
-        ListItem::new(Tool::GnostrChat.to_string()),
-        ListItem::new(Tool::Chart.to_string()),
+        ListItem::new(Tool::Gnostr.to_string()),
+        ListItem::new(Tool::Relay.to_string()),
         ListItem::new(Tool::Cube.to_string()),
     ];
     let list = List::new(items)
         .block(
             Block::default()
-                .title("Tools")
+                .title(" Tools ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -191,7 +191,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
 }
 
 fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
-    let text = format!("\n\n{}", app.timer.text());
+    let text = format!("{}", app.timer.text());
     let borderstyle = app.get_border_style_from_id(ActiveBlock::Timer);
     let mut paragraphstyle = Style::default();
     paragraphstyle = match app.timer.on {
@@ -204,12 +204,12 @@ fn render_timer<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     let paragraph = Paragraph::new(text)
         .block(
             Block::default()
-                .title("Timer")
+                .title(" Start/Stop ")
                 .borders(Borders::ALL)
                 .border_style(borderstyle),
         )
         .style(paragraphstyle)
-        .alignment(Alignment::Center)
+        .alignment(Alignment::Left)
         .wrap(Wrap { trim: true });
     f.render_widget(paragraph, layout_chunk);
 }
@@ -246,7 +246,7 @@ fn render_times<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Table")
+                .title(" Stream ")
                 .border_style(border_style),
         )
         .highlight_style(selected_style)
@@ -264,7 +264,7 @@ fn render_topic<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     let paragraph = Paragraph::new(format!("\n{}", app.scramble.clone()))
         .block(
             Block::default()
-                .title("Topic")
+                .title(" Topic/Header ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -279,23 +279,23 @@ fn render_bests<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
         .direction(Direction::Horizontal)
         .constraints(
             [
-                Constraint::Ratio(1, 6),
-                Constraint::Ratio(1, 6),
-                Constraint::Ratio(1, 6),
-                Constraint::Ratio(1, 6),
-                Constraint::Ratio(1, 6),
-                Constraint::Ratio(1, 6),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                //Constraint::Ratio(1, 6),
+                //Constraint::Ratio(1, 6),
+                //Constraint::Ratio(1, 6),
             ]
             .as_ref(),
         )
         .split(layout_chunk);
 
-    render_stat(f, app, "PB Single", app.times.pbsingle, chunks[0]);
-    render_stat(f, app, "PB ao5", app.times.pbao5, chunks[1]);
-    render_stat(f, app, "PB ao12", app.times.pbao12, chunks[2]);
-    render_stat(f, app, "ao100", app.times.ao100, chunks[3]);
-    render_stat(f, app, "ao1k", app.times.ao1k, chunks[4]);
-    render_stat(f, app, "avg", app.times.rollingavg, chunks[5]);
+    render_stat(f, app, "Stats 1", app.times.pbsingle, chunks[0]);
+    render_stat(f, app, "Stats 2", app.times.pbao5, chunks[1]);
+    render_stat(f, app, "Stats 3", app.times.pbao12, chunks[2]);
+    //render_stat(f, app, "Stats 4", app.times.ao100, chunks[3]);
+    //render_stat(f, app, "Stats 5", app.times.ao1k, chunks[4]);
+    //render_stat(f, app, "Stats 6", app.times.rollingavg, chunks[5]);
 }
 
 fn render_stat<B: Backend>(
@@ -325,8 +325,8 @@ fn render_stat<B: Backend>(
 
 fn render_main<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     match app.active_tool {
-        Tool::GnostrChat => render_gnostr_chat(f, app, layout_chunk),
-        Tool::Chart => render_chart(f, app, layout_chunk),
+        Tool::Gnostr => render_gnostr_chat(f, app, layout_chunk),
+        Tool::Relay => render_relay(f, app, layout_chunk),
         Tool::Cube => render_cube(f, app, layout_chunk),
     }
 }
@@ -336,7 +336,7 @@ fn render_gnostr_chat<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk:
     let paragraph = Paragraph::new(WELCOME_TEXT)
         .block(
             Block::default()
-                .title("GnostrChat!")
+                .title(" gnostr ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -349,7 +349,7 @@ fn render_cube<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) 
     let paragraph = Paragraph::new(CUBE_TEXT)
         .block(
             Block::default()
-                .title("Cube")
+                .title(" Cube ")
                 .borders(Borders::ALL)
                 .border_style(border_style),
         )
@@ -357,7 +357,7 @@ fn render_cube<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) 
     f.render_widget(paragraph, layout_chunk);
 }
 
-fn render_chart<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
+fn render_relay<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect) {
     let singles = app
         .times
         .times
@@ -418,10 +418,10 @@ fn render_chart<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
     let ymid_str = format!("{:.1}", ymid);
     let ymax_str = format!("{:.1}", ymax);
 
-    let chart = Chart::new(datasets)
+    let relay = Chart::new(datasets) //relay io
         .block(
             Block::default()
-                .title("Chart")
+                .title(" Relay ")
                 .border_style(border_style)
                 .borders(Borders::ALL),
         )
@@ -451,5 +451,5 @@ fn render_chart<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chunk: Rect)
                         .collect(),
                 ),
         );
-    f.render_widget(chart, layout_chunk);
+    f.render_widget(relay, layout_chunk);
 }

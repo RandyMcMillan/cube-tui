@@ -271,16 +271,16 @@ impl CubeTimer {
 
 #[derive(Copy, Clone)]
 pub enum Tool {
-    GnostrChat,
-    Chart,
+    Gnostr,
+    Relay,
     Cube,
 }
 
 impl fmt::Display for Tool {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
         let text = match self {
-            Tool::GnostrChat => "GnostrChat",
-            Tool::Chart => "Chart",
+            Tool::Gnostr => "Gnostr",
+            Tool::Relay => "Relay",
             Tool::Cube => "Cube",
         };
         write!(f, "{}", text)?;
@@ -327,13 +327,13 @@ impl<'a> App<'a> {
             tools_state,
             //this plus default active block determine initial navigation move
             pos: (0, 0),
-            layout: vec![
+            layout: vec![//effects nav order
                 vec![ActiveBlock::Tools, ActiveBlock::Timer, ActiveBlock::Times],
-                vec![ActiveBlock::Scramble, ActiveBlock::Stats, ActiveBlock::Main],
+                vec![ActiveBlock::Stats, ActiveBlock::Scramble, ActiveBlock::Main],
             ],
             scramble: gen_scramble(),
-            tools: vec![Tool::GnostrChat, Tool::Chart, Tool::Cube],
-            active_tool: Tool::GnostrChat,
+            tools: vec![Tool::Gnostr, Tool::Relay, Tool::Cube],
+            active_tool: Tool::Gnostr,
         })
     }
 
