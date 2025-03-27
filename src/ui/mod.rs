@@ -80,6 +80,8 @@ fn handle_input(app: &mut App) -> Result<bool, Box<dyn Error>> {
                 KeyCode::Char('l') | KeyCode::Right => app.mv(Dir::Right),
                 KeyCode::Char('d') => app.del(),
                 KeyCode::Char('?') => app.help(),
+                KeyCode::Char('<') => app.help(),
+                KeyCode::Char('>') => app.esc(),
                 _ => (),
             },
             KeyModifiers::CONTROL => match key.code {
@@ -158,7 +160,7 @@ fn render_help_and_tools<B: Backend>(f: &mut Frame<B>, app: &mut App, layout_chu
         .split(layout_chunk);
 
     let border_style = app.get_border_style_from_id(ActiveBlock::Help);
-    let paragraph = Paragraph::new("<?>".to_string())
+    let paragraph = Paragraph::new("<?".to_string())
         .block(
             Block::default()
                 .title("")
