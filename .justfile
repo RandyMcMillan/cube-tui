@@ -10,8 +10,11 @@ all:
 bin:
   @make bin
 
-chat-project-example:
-  @make chat-project-example
+cargo-run-chat-example:
+  @make cargo-run-chat-example
+
+cargo-run-cube-tui:
+  @make cargo-run-cube-tui
 
 cargo-help:
   @make cargo-help

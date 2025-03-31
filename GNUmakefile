@@ -13,10 +13,13 @@ all: bin### 	all
 bin:### 	bin
 	cargo b --manifest-path Cargo.toml
 
-## 	cargo run --bin chat-project-example
-chat-project-example:### 	chat-project-example
-	@cargo run --bin chat-project-example
+## 	cargo run --bin chat-example
+cargo-run-chat-example:### 	cargo-run-chat-example
+	@cargo run --bin chat_example
 
+## 	cargo run --bin cube-tui
+cargo-run-cube-tui:### 	chat-project-example
+	@cargo run --bin cube-tui
 
 
 ##
