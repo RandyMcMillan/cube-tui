@@ -10,6 +10,9 @@ all:
 bin:
   @make bin
 
+run:
+  @make run
+
 cargo-run-chat-example:
   @make cargo-run-chat-example
 
